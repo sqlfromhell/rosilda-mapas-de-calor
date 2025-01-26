@@ -65,12 +65,21 @@ def load_geojson(url):
     return gpd.read_file(url)
 
 
-def map_regions(geo_df, column_name, mapping):
-    geo_df[REGION_LABEL] = geo_df[column_name].map(mapping)
+def map_regions(
+    geo_df,
+    column_name,
+    region_mapping,
+):
+    geo_df[REGION_LABEL] = geo_df[column_name].map(
+        region_mapping,
+    )
     return geo_df
 
 
-def plot_heatmap(geo_df, output_path):
+def plot_heatmap(
+    geo_df,
+    output_path,
+):
     df = pd.DataFrame(
         {
             REGION_LABEL: REGIONS,
@@ -78,27 +87,58 @@ def plot_heatmap(geo_df, output_path):
         }
     )
 
-    geo_df_merged = geo_df.merge(df, on=REGION_LABEL)
+    geo_df_merged = geo_df.merge(
+        df,
+        on=REGION_LABEL,
+    )
 
-    _, ax = plt.subplots(1, 1, figsize=(10, 8))
+    _, ax = plt.subplots(
+        1,
+        1,
+        figsize=(10, 8),
+    )
+
     geo_df_merged.plot(
         column="Valor",
         cmap="YlOrRd",
-        legend=True,
+        legend=False,
         ax=ax,
         edgecolor="black",
     )
 
+    # Create custom legend
+    unique_values = sorted(set(df["Valor"]))
+    for value in unique_values:
+        color = plt.cm.YlOrRd(value / max(unique_values))
+        ax.scatter(
+            [],
+            [],
+            c=[color],
+            label=f"{value}",
+        )
+
+    ax.legend()
+
     plt.title("BRASIL")
     plt.axis("off")
-    plt.savefig(output_path, dpi=300)
+    plt.savefig(
+        output_path,
+        dpi=900,
+    )
 
 
 def main():
     create_output_directory(OUTPUT_DIR)
-    output_file = os.path.join(OUTPUT_DIR, "geral.png")
+    output_file = os.path.join(
+        OUTPUT_DIR,
+        "geral.png",
+    )
     geojson = load_geojson(GEOJSON_URL)
-    geojson = map_regions(geojson, COLUMN_NAME, REGION_MAPPING)
+    geojson = map_regions(
+        geojson,
+        COLUMN_NAME,
+        REGION_MAPPING,
+    )
 
     plot_heatmap(geojson, output_file)
 

@@ -66,47 +66,89 @@ def load_geojson(url):
     return gpd.read_file(url)
 
 
-def map_regions(geo_df, column_name, region_mapping):
-    geo_df[REGION_LABEL] = geo_df[column_name].map(region_mapping)
+def map_regions(
+    geo_df,
+    column_name,
+    region_mapping,
+):
+    geo_df[REGION_LABEL] = geo_df[column_name].map(
+        region_mapping,
+    )
     return geo_df
 
 
-def plot_heatmap(geo_df, output_dir):
-    df = pd.DataFrame(DATA)
+def plot_heatmap(
+    geo_df,
+    output_dir,
+):
+    base_df = pd.DataFrame(DATA)
 
-    for index, row in df.iterrows():
+    for index, row in base_df.iterrows():
         if index == "Total":
             continue
 
-        df_temp = pd.DataFrame(
+        data = row[1:]
+        data = [int(x) for x in data]
+
+        df = pd.DataFrame(
             {
                 REGION_LABEL: REGIONS,
-                "Valor": row[1:],
+                "Valor": data,
             }
         )
 
-        geo_df_merged = geo_df.merge(df_temp, on=REGION_LABEL)
+        geo_df_merged = geo_df.merge(
+            df,
+            on=REGION_LABEL,
+        )
 
-        _, ax = plt.subplots(1, 1, figsize=(10, 8))
+        _, ax = plt.subplots(
+            1,
+            1,
+            figsize=(10, 8),
+        )
+
         geo_df_merged.plot(
             column="Valor",
             cmap="YlOrRd",
-            legend=True,
+            legend=False,
             ax=ax,
             edgecolor="black",
         )
 
+        # Create custom legend
+        unique_values = sorted(set(df["Valor"]))
+        for value in unique_values:
+            color = plt.cm.YlOrRd(value / max(unique_values))
+            ax.scatter(
+                [],
+                [],
+                c=[color],
+                label=f"{value}",
+            )
+
+        ax.legend()
+
         plt.title(row[0])
         plt.axis("off")
-        plt.savefig(f"{output_dir}/{row[0].lower()}.png", dpi=300)
+        plt.savefig(
+            f"{output_dir}/{row[0].lower()}.png",
+            dpi=900,
+        )
 
 
 def main():
     create_output_directory(OUTPUT_DIR)
     geojson = load_geojson(GEOJSON_URL)
-    geojson = map_regions(geojson, COLUMN_NAME, REGION_MAPPING)
-
-    plot_heatmap(geojson, OUTPUT_DIR)
+    geojson = map_regions(
+        geojson,
+        COLUMN_NAME,
+        REGION_MAPPING,
+    )
+    plot_heatmap(
+        geojson,
+        OUTPUT_DIR,
+    )
 
 
 if __name__ == "__main__":
