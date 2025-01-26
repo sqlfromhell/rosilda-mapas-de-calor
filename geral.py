@@ -16,7 +16,9 @@ REGIONS = [
     "NORDESTE",
 ]
 
-VALUES = [
+REGION_LABEL = "Região"
+
+DATA = [
     20,
     38,
     9,
@@ -53,8 +55,6 @@ REGION_MAPPING = {
     "Maranhão": "NORDESTE",
 }
 
-REGION_LABEL = "Região"
-
 
 def create_output_directory(directory):
     if not os.path.exists(directory):
@@ -65,32 +65,30 @@ def load_geojson(url):
     return gpd.read_file(url)
 
 
-def create_dataframe(regions, values):
-    return pd.DataFrame({REGION_LABEL: regions, "Valor": values})
-
-
 def map_regions(geo_df, column_name, mapping):
-    if column_name not in geo_df.columns:
-        raise ValueError(
-            f"Column '{column_name}' not found in the GeoDataFrame!",
-        )
     geo_df[REGION_LABEL] = geo_df[column_name].map(mapping)
     return geo_df
 
 
-def merge_data(geo_df, df):
-    return geo_df.merge(df, on=REGION_LABEL)
-
-
 def plot_heatmap(geo_df, output_path):
+    df = pd.DataFrame(
+        {
+            REGION_LABEL: REGIONS,
+            "Valor": DATA,
+        }
+    )
+
+    geo_df_merged = geo_df.merge(df, on=REGION_LABEL)
+
     _, ax = plt.subplots(1, 1, figsize=(10, 8))
-    geo_df.plot(
+    geo_df_merged.plot(
         column="Valor",
         cmap="YlOrRd",
         legend=True,
         ax=ax,
         edgecolor="black",
     )
+
     plt.title("BRASIL")
     plt.axis("off")
     plt.savefig(output_path, dpi=300)
@@ -98,11 +96,11 @@ def plot_heatmap(geo_df, output_path):
 
 def main():
     create_output_directory(OUTPUT_DIR)
-    brasil = load_geojson(GEOJSON_URL)
-    df = create_dataframe(REGIONS, VALUES)
-    brasil = map_regions(brasil, COLUMN_NAME, REGION_MAPPING)
-    brasil = merge_data(brasil, df)
-    plot_heatmap(brasil, os.path.join(OUTPUT_DIR, "geral.png"))
+    output_file = os.path.join(OUTPUT_DIR, "geral.png")
+    geojson = load_geojson(GEOJSON_URL)
+    geojson = map_regions(geojson, COLUMN_NAME, REGION_MAPPING)
+
+    plot_heatmap(geojson, output_file)
 
 
 if __name__ == "__main__":

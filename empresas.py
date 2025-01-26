@@ -8,6 +8,16 @@ OUTPUT_DIR = ".outputs"
 GEOJSON_URL = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"  # noqa
 COLUMN_NAME = "name"
 
+REGIONS = [
+    "SUL",
+    "SUDESTE",
+    "CENTRO-OESTE",
+    "NORTE",
+    "NORDESTE",
+]
+
+REGION_LABEL = "Região"
+
 DATA = {
     "Empresa": ["ÂNIMA", "COGNA", "YDUQS", "SER", "CRUZEIRO DO SUL", "VITRU"],
     "SUL": [5, 4, 3, 2, 4, 2],
@@ -46,15 +56,13 @@ REGION_MAPPING = {
     "Maranhão": "NORDESTE",
 }
 
-REGION_LABEL = "Região"
-
 
 def create_output_directory(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
 
-def load_brazil_geojson(url):
+def load_geojson(url):
     return gpd.read_file(url)
 
 
@@ -63,31 +71,23 @@ def map_regions(geo_df, column_name, region_mapping):
     return geo_df
 
 
-def create_dataframe(data):
-    return pd.DataFrame(data)
+def plot_heatmap(geo_df, output_dir):
+    df = pd.DataFrame(DATA)
 
-
-def generate_heatmap(geo_df, df, output_dir):
     for index, row in df.iterrows():
         if index == "Total":
             continue
 
         df_temp = pd.DataFrame(
             {
-                REGION_LABEL: [
-                    "SUL",
-                    "SUDESTE",
-                    "CENTRO-OESTE",
-                    "NORTE",
-                    "NORDESTE",
-                ],
+                REGION_LABEL: REGIONS,
                 "Valor": row[1:],
             }
         )
 
         geo_df_merged = geo_df.merge(df_temp, on=REGION_LABEL)
 
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+        _, ax = plt.subplots(1, 1, figsize=(10, 8))
         geo_df_merged.plot(
             column="Valor",
             cmap="YlOrRd",
@@ -99,15 +99,14 @@ def generate_heatmap(geo_df, df, output_dir):
         plt.title(row[0])
         plt.axis("off")
         plt.savefig(f"{output_dir}/{row[0].lower()}.png", dpi=300)
-        plt.close(fig)
 
 
 def main():
     create_output_directory(OUTPUT_DIR)
-    brasil_geojson = load_brazil_geojson(GEOJSON_URL)
-    brasil_geojson = map_regions(brasil_geojson, COLUMN_NAME, REGION_MAPPING)
-    df = create_dataframe(DATA)
-    generate_heatmap(brasil_geojson, df, OUTPUT_DIR)
+    geojson = load_geojson(GEOJSON_URL)
+    geojson = map_regions(geojson, COLUMN_NAME, REGION_MAPPING)
+
+    plot_heatmap(geojson, OUTPUT_DIR)
 
 
 if __name__ == "__main__":
